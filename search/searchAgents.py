@@ -51,6 +51,15 @@ class GoWestAgent(Agent):
         else:
             return Directions.STOP
 
+class MySuperAgent(Agent):
+
+    def getAction(self, state):
+        "The agent receives a GameState (defined in pacman.py)."
+        if Directions.SOUTH in state.getLegalPacmanActions():
+            return Directions.SOUTH
+        else:
+            return Directions.WEST
+
 #######################################################
 # This portion is written for you, but will only work #
 #       after you fill in parts of search.py          #
