@@ -97,13 +97,15 @@ class BTAction(BTNode):
         return
 
     def evaluate(self, action):
-        BTAgent.finalAction = action
+        BTAgent.possibleActions.remove(action)
         return True
 
 class BTAgent(Agent):
-    finalAction = "Stop"
+    possibleActions = ["Stop"]
 
     def getAction(self, state):
+        BTAgent.possibleActions = state.getLegalPacmanActions()
+
         def checkGhost(action):
             newState = state.generatePacmanSuccessor(action)
             pacmanPos = newState.getPacmanPosition()
@@ -123,7 +125,11 @@ class BTAgent(Agent):
         for action in legalActions:
             ourTree.evaluate(action)
 
-        return BTAgent.finalAction
+        #print BTAgent.possibleActions
+        if BTAgent.possibleActions[0] != "Stop":
+            return BTAgent.possibleActions[0]
+        else:
+            return BTAgent.possibleActions[1]
         
         # legalActions = state.getLegalActions()
         # for action in legalActions:
