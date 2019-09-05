@@ -60,6 +60,85 @@ class MySuperAgent(Agent):
         else:
             return Directions.WEST
 
+class BTNode:
+
+    def __init__(self, children):
+        self.children = children
+
+class BTSequence(BTNode):
+
+    def evaluate(self, action):
+        for node in self.children:
+            result = node.evaluate(action)
+            if not result:
+                return False
+        return True
+
+class BTSelector(BTNode):
+
+    def evaluate(self, action):
+        for node in self.children:
+            result = node.evaluate(action)
+            if result:
+                return True
+        return False
+
+class BTCondition(BTNode):
+
+    def __init__(self, condition):
+        self.condition = condition
+
+    def evaluate(self, action):
+        return self.condition(action)
+
+class BTAction(BTNode):
+
+    def __init__(self):
+        return
+
+    def evaluate(self, action):
+        BTAgent.finalAction = action
+        return True
+
+class BTAgent(Agent):
+    finalAction = "Stop"
+
+    def getAction(self, state):
+        def checkGhost(action):
+            newState = state.generatePacmanSuccessor(action)
+            pacmanPos = newState.getPacmanPosition()
+            ghostPosList = newState.getGhostPositions()
+            if pacmanPos in ghostPosList:
+                return True
+            return False
+
+        ourTree = BTSelector([
+            BTSequence([
+                BTCondition(checkGhost),
+                BTAction()
+            ])
+        ])
+    
+        legalActions = state.getLegalActions()
+        for action in legalActions:
+            ourTree.evaluate(action)
+
+        return BTAgent.finalAction
+        
+        # legalActions = state.getLegalActions()
+        # for action in legalActions:
+        #     newState = state.generatePacmanSuccessor(action)
+        #     pacmanPos = newState.getPacmanPosition()
+        #     ghostPosList = newState.getGhostPositions()
+        #     if pacmanPos in ghostPosList:
+        #         continue
+        #     elif action == "Stop":
+        #         continue
+        #     else:
+        #         print action
+        #         return action
+
+
 #######################################################
 # This portion is written for you, but will only work #
 #       after you fill in parts of search.py          #
