@@ -40,6 +40,7 @@ from game import Actions
 import util
 import time
 import search
+import random
 
 class GoWestAgent(Agent):
     "An agent that goes West until it can't."
@@ -67,69 +68,159 @@ class BTNode:
 
 class BTSequence(BTNode):
 
-    def evaluate(self, action):
+    def evaluate(self):
         for node in self.children:
-            result = node.evaluate(action)
+            result = node.evaluate()
             if not result:
                 return False
         return True
 
 class BTSelector(BTNode):
 
-    def evaluate(self, action):
+    def evaluate(self):
         for node in self.children:
-            result = node.evaluate(action)
+            result = node.evaluate()
             if result:
                 return True
         return False
 
-class BTCondition(BTNode):
+class BTLeaf(BTNode):
 
-    def __init__(self, condition):
-        self.condition = condition
+    def __init__(self, function, params=None):
+        self.function = function
+        self.params = params
 
-    def evaluate(self, action):
-        return self.condition(action)
-
-class BTAction(BTNode):
-
-    def __init__(self):
-        return
-
-    def evaluate(self, action):
-        BTAgent.possibleActions.remove(action)
-        return True
+    def evaluate(self):
+        if (self.params == None):
+            return self.function()
+        return self.function(self.params)
 
 class BTAgent(Agent):
-    possibleActions = ["Stop"]
+    actionToTake = "Stop"
 
     def getAction(self, state):
-        BTAgent.possibleActions = state.getLegalPacmanActions()
+        #print "Food: " + str(state.get())
 
-        def checkGhost(action):
+        def checkActionLegal(action):
+            result = action in state.getLegalActions()
+            #if (result): print "Action " + str(action) + " was legal"
+            #else: print "Action " + str(action) + " was NOT legal"
+            return result
+
+        def checkNoGhost(action):
             newState = state.generatePacmanSuccessor(action)
             pacmanPos = newState.getPacmanPosition()
             ghostPosList = newState.getGhostPositions()
-            if pacmanPos in ghostPosList:
+            ghostPosAdjList = []
+            for pos in ghostPosList:
+                ghostPosAdjList.append((pos[0] - 1, pos[1]))
+                ghostPosAdjList.append((pos[0] + 1, pos[1]))
+                ghostPosAdjList.append((pos[0], pos[1] - 1))
+                ghostPosAdjList.append((pos[0], pos[1] + 1))
+            if pacmanPos in ghostPosList or pacmanPos in ghostPosAdjList:
+                #print "Ghost WAS in direction " + str(action)
+                return False
+            #print "Ghost was NOT in direction " + str(action)
+            return True
+
+        def takeAction(action):
+            #print "Taking action " + str(action)
+            BTAgent.actionToTake = action
+            return True
+
+        def takeRandomLegalAction():
+            legalActions = state.getLegalActions()
+            i = random.randint(0, len(legalActions) - 1)
+            BTAgent.actionToTake = legalActions[i]
+            #print "Taking random action " + str(legalActions[i])
+            return True
+
+        def checkCapsule(action):
+            newState = state.generatePacmanSuccessor(action)
+            pacmanPos = newState.getPacmanPosition()
+            return pacmanPos in state.getCapsules()
+
+        def checkFood(action):
+            newState = state.generatePacmanSuccessor(action)
+            pacmanPos = newState.getPacmanPosition()
+            return state.getFood()[pacmanPos[0]][pacmanPos[1]]
+
+        def takeRandomNoGhostAction():
+            ghostNear = True
+            legalActions = state.getLegalActions()
+            tries = 0
+            i = 0
+            while (ghostNear or legalActions[i] == "Stop") and tries < 10:
+                i = random.randint(0, len(legalActions) - 1)
+                ghostNear = not checkNoGhost(legalActions[i])
+                tries += 1
+            if (tries < 10):
+                BTAgent.actionToTake = legalActions[i]
+                #print "Taking random action " + str(legalActions[i])
                 return True
             return False
 
         ourTree = BTSelector([
+            # Try to find capsule
             BTSequence([
-                BTCondition(checkGhost),
-                BTAction()
-            ])
-        ])
-    
-        legalActions = state.getLegalActions()
-        for action in legalActions:
-            ourTree.evaluate(action)
+                BTLeaf(checkActionLegal, "North"),
+                BTLeaf(checkNoGhost, "North"),
+                BTLeaf(checkCapsule, "North"),
+                BTLeaf(takeAction, "North")
+            ]),
+            BTSequence([
+                BTLeaf(checkActionLegal, "East"),
+                BTLeaf(checkNoGhost, "East"),
+                BTLeaf(checkCapsule, "East"),
+                BTLeaf(takeAction, "East")
+            ]),
+            BTSequence([
+                BTLeaf(checkActionLegal, "South"),
+                BTLeaf(checkNoGhost, "South"),
+                BTLeaf(checkCapsule, "South"),
+                BTLeaf(takeAction, "South")
+            ]),
+            BTSequence([
+                BTLeaf(checkActionLegal, "West"),
+                BTLeaf(checkNoGhost, "West"),
+                BTLeaf(checkCapsule, "West"),
+                BTLeaf(takeAction, "West")
+            ]),
 
-        #print BTAgent.possibleActions
-        if BTAgent.possibleActions[0] != "Stop":
-            return BTAgent.possibleActions[0]
-        else:
-            return BTAgent.possibleActions[1]
+            # Try to find food
+            BTSequence([
+                BTLeaf(checkActionLegal, "North"),
+                BTLeaf(checkNoGhost, "North"),
+                BTLeaf(checkFood, "North"),
+                BTLeaf(takeAction, "North")
+            ]),
+            BTSequence([
+                BTLeaf(checkActionLegal, "East"),
+                BTLeaf(checkNoGhost, "East"),
+                BTLeaf(checkFood, "East"),
+                BTLeaf(takeAction, "East")
+            ]),
+            BTSequence([
+                BTLeaf(checkActionLegal, "South"),
+                BTLeaf(checkNoGhost, "South"),
+                BTLeaf(checkFood, "South"),
+                BTLeaf(takeAction, "South")
+            ]),
+            BTSequence([
+                BTLeaf(checkActionLegal, "West"),
+                BTLeaf(checkNoGhost, "West"),
+                BTLeaf(checkFood, "West"),
+                BTLeaf(takeAction, "West")
+            ]),
+
+            # Just go where there is no ghost
+            BTLeaf(takeRandomNoGhostAction),
+            BTLeaf(takeAction, "Stop")
+        ])
+
+        ourTree.evaluate()
+        print BTAgent.actionToTake
+        return BTAgent.actionToTake
         
         # legalActions = state.getLegalActions()
         # for action in legalActions:
