@@ -22,32 +22,41 @@ class EvolvePacManBT():
         self.__create_initial_pop()
 
     def __create_initial_pop(self):
-        self.gene_pool = [(0, GAAgent())]
+        self.gene_pool = [GAAgent()]
         self.produce_next_generation(self.gene_pool)
 
     def produce_next_generation(self, parents):
         """ YOUR CODE HERE!"""
+        while len(self.gene_pool) < self.pop_size:
+            ind = random.randint(0, len(parents) - 1)
+            offspring = copy.deepcopy(parents[ind])
+            offspring.mutate()
+            self.gene_pool.append(offspring)
+        print "Done producing generation. Size: " + str(len(self.gene_pool))
 
     def evaluate_population(self):
         """ Evaluate the fitness, and sort the population accordingly."""
         """ YOUR CODE HERE!"""
         min_fitness = np.inf
         for gene in self.gene_pool:
-            self.args["pacman"] = gene[1]
+            self.args["pacman"] = gene
             out = runGames(**self.args)
-            fitness = (o.state.getScore for o in out)
-            print "Fitness: " + str(fitness)
-            # if min_fitness > fitness:
-            #     min_fitness = fitness
-            # gene[0] = fitness
+            fitness = 0
+            div = 0
+            for o in out:
+                fitness += o.state.getScore()
+                div += 1
+            fitness /= div
+            if min_fitness > fitness:
+                min_fitness = fitness
+            gene.fitness = fitness
 
-        self.gene_pool.sort(key=lambda x: x[0])
-        if min_fitness == 0:
-            return True
-        return False
+        self.gene_pool.sort(key=lambda x: x.fitness)
+        return fitness
 
     def select_parents(self, num_parents):
         """ YOUR CODE HERE!"""
+        return copy.deepcopy(self.gene_pool[:num_parents])
 
     def run(self, num_generations=10):
         display_args = copy.deepcopy(self.args)
@@ -75,6 +84,8 @@ class EvolvePacManBT():
                 print("############################################################")
                 print("############################################################")
 
+            print "i: " + str(i) + "\r"
+        
         print('best genome!')
         self.gene_pool[0].print_genome()
         runGames(**display_args)

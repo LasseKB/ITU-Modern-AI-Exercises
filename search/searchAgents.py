@@ -42,6 +42,7 @@ import time
 import search
 import GA_util
 import BTUtils
+import random
 
 import copy
 import numpy as np
@@ -170,6 +171,8 @@ class GAAgent(Agent):
 
         self.tree = GA_util.parse_node(self.genome, None)
 
+        self.fitness = 0
+
     def copy(self):
         clone = GAAgent()
         clone.genome = copy.deepcopy(self.genome)
@@ -189,6 +192,14 @@ class GAAgent(Agent):
 
     def mutate(self):
         """ YOUR CODE HERE! """
+        nodes = []
+        ind = random.randint(0,len(self.legal_composit) - 1)
+        nodes.append(self.legal_composit[ind])
+        for _ in range(2):
+            ind = random.randint(0,len(self.legal_leaf) - 1)
+            nodes.append(self.legal_leaf[ind])
+        self.genome.insert(1, nodes)
+
     def getAction(self, state):
         action = self.tree(state)
         if action not in state.getLegalPacmanActions():
