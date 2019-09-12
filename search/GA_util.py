@@ -1,4 +1,5 @@
 import numpy as np
+import random
 
 
 opposites = {
@@ -21,7 +22,11 @@ class Sequence:
 
     def __call__(self, state):
         """ YOUR CODE HERE!"""
-        raise NotImplementedError
+        for node in self.children:
+            result = node.__call__(state)
+            if not result:
+                return False
+        return result
 
 
 class Selector:
@@ -36,7 +41,11 @@ class Selector:
 
     def __call__(self, state):
         """ YOUR CODE HERE!"""
-        raise NotImplementedError
+        for node in self.children:
+            result = node.__call__(state)
+            if result:
+                return result
+        return False
 
 
 class CheckValid:
@@ -47,7 +56,7 @@ class CheckValid:
 
     def __call__(self, state):
         """ YOUR CODE HERE!"""
-        raise NotImplementedError
+        return self.direction in state.getLegalActions()
 
 
 class CheckDanger:
@@ -58,7 +67,20 @@ class CheckDanger:
 
     def __call__(self, state):
         """ YOUR CODE HERE!"""
-        raise NotImplementedError
+        newState = state.generatePacmanSuccessor(self.direction)
+        pacmanPos = newState.getPacmanPosition()
+        ghostPosList = newState.getGhostPositions()
+        ghostPosAdjList = []
+        for pos in ghostPosList:
+            ghostPosAdjList.append((pos[0] - 1, pos[1]))
+            ghostPosAdjList.append((pos[0] + 1, pos[1]))
+            ghostPosAdjList.append((pos[0], pos[1] - 1))
+            ghostPosAdjList.append((pos[0], pos[1] + 1))
+        if pacmanPos in ghostPosList or pacmanPos in ghostPosAdjList:
+            #print "Ghost WAS in direction " + str(self.direction)
+            return True
+        #print "Ghost was NOT in direction " + str(action)
+        return False
 
 
 class ActionGo:
@@ -69,7 +91,12 @@ class ActionGo:
 
     def __call__(self, state):
         """ YOUR CODE HERE!"""
-        raise NotImplementedError
+        if self.direction == "Random":
+            legalActions = state.getLegalActions()
+            i = random.randint(0, len(legalActions) - 1)
+            return legalActions[i]
+        print "Returning: " + str(self.direction) + " with type: " + str(type(self.direction))
+        return self.direction
 
 
 class ActionGoNot:
@@ -80,7 +107,9 @@ class ActionGoNot:
 
     def __call__(self, state):
         """ YOUR CODE HERE!"""
-        raise NotImplementedError
+        for aDir in state.getLegalActions():
+            if not aDir == self.direction and not aDir == "Stop":
+                return aDir
 
 
 class DecoratorInvert:

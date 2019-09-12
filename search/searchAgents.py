@@ -40,8 +40,8 @@ from game import Actions
 import util
 import time
 import search
-import random
 import GA_util
+import BTUtils
 
 import numpy as np
 class GoWestAgent(Agent):
@@ -63,179 +63,74 @@ class MySuperAgent(Agent):
         else:
             return Directions.WEST
 
-class BTNode:
-
-    def __init__(self, children):
-        self.children = children
-
-class BTSequence(BTNode):
-
-    def evaluate(self):
-        for node in self.children:
-            result = node.evaluate()
-            if not result:
-                return False
-        return True
-
-class BTSelector(BTNode):
-
-    def evaluate(self):
-        for node in self.children:
-            result = node.evaluate()
-            if result:
-                return True
-        return False
-
-class BTLeaf(BTNode):
-
-    def __init__(self, function, params=None):
-        self.function = function
-        self.params = params
-
-    def evaluate(self):
-        if (self.params == None):
-            return self.function()
-        return self.function(self.params)
-
 class BTAgent(Agent):
     actionToTake = "Stop"
 
     def getAction(self, state):
         #print "Food: " + str(state.get())
 
-        def checkActionLegal(action):
-            result = action in state.getLegalActions()
-            #if (result): print "Action " + str(action) + " was legal"
-            #else: print "Action " + str(action) + " was NOT legal"
-            return result
-
-        def checkNoGhost(action):
-            newState = state.generatePacmanSuccessor(action)
-            pacmanPos = newState.getPacmanPosition()
-            ghostPosList = newState.getGhostPositions()
-            ghostPosAdjList = []
-            for pos in ghostPosList:
-                ghostPosAdjList.append((pos[0] - 1, pos[1]))
-                ghostPosAdjList.append((pos[0] + 1, pos[1]))
-                ghostPosAdjList.append((pos[0], pos[1] - 1))
-                ghostPosAdjList.append((pos[0], pos[1] + 1))
-            if pacmanPos in ghostPosList or pacmanPos in ghostPosAdjList:
-                #print "Ghost WAS in direction " + str(action)
-                return False
-            #print "Ghost was NOT in direction " + str(action)
-            return True
-
-        def takeAction(action):
-            #print "Taking action " + str(action)
-            BTAgent.actionToTake = action
-            return True
-
-        def takeRandomLegalAction():
-            legalActions = state.getLegalActions()
-            i = random.randint(0, len(legalActions) - 1)
-            BTAgent.actionToTake = legalActions[i]
-            #print "Taking random action " + str(legalActions[i])
-            return True
-
-        def checkCapsule(action):
-            newState = state.generatePacmanSuccessor(action)
-            pacmanPos = newState.getPacmanPosition()
-            return pacmanPos in state.getCapsules()
-
-        def checkFood(action):
-            newState = state.generatePacmanSuccessor(action)
-            pacmanPos = newState.getPacmanPosition()
-            return state.getFood()[pacmanPos[0]][pacmanPos[1]]
-
-        def takeRandomNoGhostAction():
-            ghostNear = True
-            legalActions = state.getLegalActions()
-            tries = 0
-            i = 0
-            while (ghostNear or legalActions[i] == "Stop") and tries < 10:
-                i = random.randint(0, len(legalActions) - 1)
-                ghostNear = not checkNoGhost(legalActions[i])
-                tries += 1
-            if (tries < 10):
-                BTAgent.actionToTake = legalActions[i]
-                #print "Taking random action " + str(legalActions[i])
-                return True
-            return False
-
-        ourTree = BTSelector([
+        ourTree = BTUtils.BTSelector([
             # Try to find capsule
-            BTSequence([
-                BTLeaf(checkActionLegal, "North"),
-                BTLeaf(checkNoGhost, "North"),
-                BTLeaf(checkCapsule, "North"),
-                BTLeaf(takeAction, "North")
+            BTUtils.BTSequence([
+                BTUtils.BTLeaf(BTUtils.checkActionLegal, ["North", state]),
+                BTUtils.BTLeaf(BTUtils.checkNoGhost, ["North", state]),
+                BTUtils.BTLeaf(BTUtils.checkCapsule, ["North", state]),
+                BTUtils.BTLeaf(BTUtils.takeAction, ["North", state])
             ]),
-            BTSequence([
-                BTLeaf(checkActionLegal, "East"),
-                BTLeaf(checkNoGhost, "East"),
-                BTLeaf(checkCapsule, "East"),
-                BTLeaf(takeAction, "East")
+            BTUtils.BTSequence([
+                BTUtils.BTLeaf(BTUtils.checkActionLegal, ["East", state]),
+                BTUtils.BTLeaf(BTUtils.checkNoGhost, ["East", state]),
+                BTUtils.BTLeaf(BTUtils.checkCapsule, ["East", state]),
+                BTUtils.BTLeaf(BTUtils.takeAction, ["East", state])
             ]),
-            BTSequence([
-                BTLeaf(checkActionLegal, "South"),
-                BTLeaf(checkNoGhost, "South"),
-                BTLeaf(checkCapsule, "South"),
-                BTLeaf(takeAction, "South")
+            BTUtils.BTSequence([
+                BTUtils.BTLeaf(BTUtils.checkActionLegal, ["South", state]),
+                BTUtils.BTLeaf(BTUtils.checkNoGhost, ["South", state]),
+                BTUtils.BTLeaf(BTUtils.checkCapsule, ["South", state]),
+                BTUtils.BTLeaf(BTUtils.takeAction, ["South", state])
             ]),
-            BTSequence([
-                BTLeaf(checkActionLegal, "West"),
-                BTLeaf(checkNoGhost, "West"),
-                BTLeaf(checkCapsule, "West"),
-                BTLeaf(takeAction, "West")
+            BTUtils.BTSequence([
+                BTUtils.BTLeaf(BTUtils.checkActionLegal, ["West", state]),
+                BTUtils.BTLeaf(BTUtils.checkNoGhost, ["West", state]),
+                BTUtils.BTLeaf(BTUtils.checkCapsule, ["West", state]),
+                BTUtils.BTLeaf(BTUtils.takeAction, ["West", state])
             ]),
 
             # Try to find food
-            BTSequence([
-                BTLeaf(checkActionLegal, "North"),
-                BTLeaf(checkNoGhost, "North"),
-                BTLeaf(checkFood, "North"),
-                BTLeaf(takeAction, "North")
+            BTUtils.BTSequence([
+                BTUtils.BTLeaf(BTUtils.checkActionLegal, ["North", state]),
+                BTUtils.BTLeaf(BTUtils.checkNoGhost, ["North", state]),
+                BTUtils.BTLeaf(BTUtils.checkFood, ["North", state]),
+                BTUtils.BTLeaf(BTUtils.takeAction, ["North", state])
             ]),
-            BTSequence([
-                BTLeaf(checkActionLegal, "East"),
-                BTLeaf(checkNoGhost, "East"),
-                BTLeaf(checkFood, "East"),
-                BTLeaf(takeAction, "East")
+            BTUtils.BTSequence([
+                BTUtils.BTLeaf(BTUtils.checkActionLegal, ["East", state]),
+                BTUtils.BTLeaf(BTUtils.checkNoGhost, ["East", state]),
+                BTUtils.BTLeaf(BTUtils.checkFood, ["East", state]),
+                BTUtils.BTLeaf(BTUtils.takeAction, ["East", state])
             ]),
-            BTSequence([
-                BTLeaf(checkActionLegal, "South"),
-                BTLeaf(checkNoGhost, "South"),
-                BTLeaf(checkFood, "South"),
-                BTLeaf(takeAction, "South")
+            BTUtils.BTSequence([
+                BTUtils.BTLeaf(BTUtils.checkActionLegal, ["South", state]),
+                BTUtils.BTLeaf(BTUtils.checkNoGhost, ["South", state]),
+                BTUtils.BTLeaf(BTUtils.checkFood, ["South", state]),
+                BTUtils.BTLeaf(BTUtils.takeAction, ["South", state])
             ]),
-            BTSequence([
-                BTLeaf(checkActionLegal, "West"),
-                BTLeaf(checkNoGhost, "West"),
-                BTLeaf(checkFood, "West"),
-                BTLeaf(takeAction, "West")
+            BTUtils.BTSequence([
+                BTUtils.BTLeaf(BTUtils.checkActionLegal, ["West", state]),
+                BTUtils.BTLeaf(BTUtils.checkNoGhost, ["West", state]),
+                BTUtils.BTLeaf(BTUtils.checkFood, ["West", state]),
+                BTUtils.BTLeaf(BTUtils.takeAction, ["West", state])
             ]),
 
             # Just go where there is no ghost
-            BTLeaf(takeRandomNoGhostAction),
-            BTLeaf(takeAction, "Stop")
+            BTUtils.BTLeaf(BTUtils.takeRandomNoGhostAction),
+            BTUtils.BTLeaf(BTUtils.takeAction, "Stop")
         ])
 
         ourTree.evaluate()
-        print BTAgent.actionToTake
+        #print BTAgent.actionToTake
         return BTAgent.actionToTake
-        
-        # legalActions = state.getLegalActions()
-        # for action in legalActions:
-        #     newState = state.generatePacmanSuccessor(action)
-        #     pacmanPos = newState.getPacmanPosition()
-        #     ghostPosList = newState.getGhostPositions()
-        #     if pacmanPos in ghostPosList:
-        #         continue
-        #     elif action == "Stop":
-        #         continue
-        #     else:
-        #         print action
-        #         return action
+
 
 class GAAgent(Agent):
     def __init__(self):

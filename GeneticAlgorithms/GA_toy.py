@@ -1,4 +1,6 @@
 import numpy as np
+import random
+import copy
 
 class Gene():
     def __init__(self, gene_seed):
@@ -11,12 +13,20 @@ class Gene():
 
     def mutate(self):
         """ YOUR CODE HERE!"""
-        raise NotImplementedError
+        ind = random.randint(0, len(self.genome) - 1)
+        if self.genome[ind] == 1:
+            self.genome[ind] = 0
+        else:
+            self.genome[ind] = 1
 
     def evaluate_fitness(self, target):
         """ Lower fitness is better. Perfect fitness should equal 0"""
         """ YOUR CODE HERE!"""
-        raise NotImplementedError
+        fitness = len(self.genome)
+        for i in range(len(self.genome)):
+            if self.genome[i] == target[i]:
+                fitness -= 1
+        return fitness
 
 
 class GeneticAlgorithm():
@@ -46,12 +56,24 @@ class GeneticAlgorithm():
     def select_parents(self, num_parents):
         """ Function that selects num_parents from the population."""
         """ YOUR CODE HERE!"""
-        raise NotImplementedError
+        self.gene_pool.sort(key=lambda x: x[0])
+        self.parents = copy.deepcopy(self.gene_pool[:num_parents])
 
     def produce_next_generation(self):
         """ Function that creates the next generation based on parents."""
         """ YOUR CODE HERE!"""
-        raise NotImplementedError
+        for parent in self.parents:
+            #print "Before: " + str(parent[0])
+            parent[1].mutate()
+            parent[0] = parent[1].evaluate_fitness(self.target)
+            #print "After: " + str(parent[0])
+            for i in range(len(self.gene_pool)):
+                if parent[0] < self.gene_pool[i][0]:
+                    #print str(parent[0]) + " was less than " + str(self.gene_pool[i][0])
+                    self.gene_pool[i] = parent
+                    break
+                #else:
+                    #print str(parent[0]) + " was NOT less than " + str(self.gene_pool[i][0])
 
     def run(self):
         done = False
