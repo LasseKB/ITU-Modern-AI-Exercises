@@ -22,16 +22,33 @@ class EvolvePacManBT():
         self.__create_initial_pop()
 
     def __create_initial_pop(self):
-        self.gene_pool = [GAAgent()]
+        self.gene_pool = [(0, GAAgent())]
         self.produce_next_generation(self.gene_pool)
 
     def produce_next_generation(self, parents):
         """ YOUR CODE HERE!"""
+
     def evaluate_population(self):
         """ Evaluate the fitness, and sort the population accordingly."""
         """ YOUR CODE HERE!"""
+        min_fitness = np.inf
+        for gene in self.gene_pool:
+            self.args["pacman"] = gene[1]
+            out = runGames(**self.args)
+            fitness = (o.state.getScore for o in out)
+            print "Fitness: " + str(fitness)
+            # if min_fitness > fitness:
+            #     min_fitness = fitness
+            # gene[0] = fitness
+
+        self.gene_pool.sort(key=lambda x: x[0])
+        if min_fitness == 0:
+            return True
+        return False
+
     def select_parents(self, num_parents):
         """ YOUR CODE HERE!"""
+
     def run(self, num_generations=10):
         display_args = copy.deepcopy(self.args)
         display_args['display'] = self.display_graphics

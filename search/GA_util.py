@@ -69,7 +69,7 @@ class CheckDanger:
         """ YOUR CODE HERE!"""
         newState = state.generatePacmanSuccessor(self.direction)
         pacmanPos = newState.getPacmanPosition()
-        ghostPosList = newState.getGhostPositions()
+        ghostPosList = state.getGhostPositions()
         ghostPosAdjList = []
         for pos in ghostPosList:
             ghostPosAdjList.append((pos[0] - 1, pos[1]))
@@ -97,7 +97,7 @@ class ActionGo:
             legalActions = state.getLegalActions()
             i = random.randint(0, len(legalActions) - 1)
             return legalActions[i]
-        print "Returning: " + str(self.direction) + " with type: " + str(type(self.direction))
+        #print "Returning: " + str(self.direction) + " with type: " + str(type(self.direction))
         return self.direction
 
 
