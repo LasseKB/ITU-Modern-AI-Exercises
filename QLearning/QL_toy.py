@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import random
 
 from cliff import Cliff
 import QL_utils
@@ -20,11 +21,19 @@ class TabularNStepQLearning:
         self.Qtable = np.zeros(self.tab_shape)
 
     def action(self, state):
-        """ With probability 1-eps: Retur the expected optimal action, given the current state.
+        """ With probability 1-eps: Return the expected optimal action, given the current state.
             With probability eps: return a random action.
         """
         """ YOUR CODE HERE"""
-        raise NotImplementedError
+        rand = random.random()
+        if rand < self.eps:
+            return random.randint(0, self.num_actions - 1)
+        a = -1
+        maxQ = float("-inf")
+        for i in range(self.num_actions):
+            if self.Qtable[tuple(state)][i] > maxQ:
+                maxQ = self.Qtable[tuple(state)][i]
+                a = i
 
         return a
 
@@ -33,7 +42,8 @@ class TabularNStepQLearning:
         """
         """ YOUR CODE HERE"""
         G = 0
-        raise NotImplementedError
+        for i in range(self.n):
+            G += pow(self.gamma, i) * self.exp[i + 1][2]
 
         return G
 
@@ -42,7 +52,13 @@ class TabularNStepQLearning:
             update the self.Qtable.
         """
         """ YOUR CODE HERE"""
-        raise NotImplementedError
+        self.exp.append([s, a, r, s_, a_, d])
+        maxQ = float("-inf")
+        for i in range(self.num_actions):
+            if self.Qtable[tuple(s_)][i] > maxQ:
+                maxQ = self.Qtable[tuple(s_)][i]
+        delta = r + self.gamma * maxQ - self.Qtable[tuple(s)][a]
+        self.Qtable[tuple(s)][a] += self.alpha*delta
 
 
 action_dict = {0:"Up", 1:"Right", 2:"Down", 3:"Left"}
