@@ -46,6 +46,9 @@ import random
 
 import copy
 import numpy as np
+
+from DQNagent import DQNagent
+
 class GoWestAgent(Agent):
     "An agent that goes West until it can't."
 
@@ -125,7 +128,7 @@ class BTAgent(Agent):
             ]),
 
             # Just go where there is no ghost
-            BTUtils.BTLeaf(BTUtils.takeRandomNoGhostAction),
+            BTUtils.BTLeaf(BTUtils.takeRandomNoGhostAction, [state]),
             BTUtils.BTLeaf(BTUtils.takeAction, "Stop")
         ])
 

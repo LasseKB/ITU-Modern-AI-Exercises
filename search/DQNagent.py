@@ -6,6 +6,8 @@ from game import Agent
 
 import NN_util
 
+import textDisplay
+import copy
 
 def init_NN_Glorot(L, activations, uniform=False):
     """
@@ -15,6 +17,60 @@ def init_NN_Glorot(L, activations, uniform=False):
     weights = []
     biases = []
     """ YOUR CODE HERE!"""
+
+    for i in range(len(L)-1):
+        #print(activations[i].func_name)
+        if activations[i].func_name == "Tanh":
+            
+            if uniform:
+                #print "Uniform ReLU. Calcing 6 / (" + str(L[i]) + " + " + str(L[i + 1]) + ")):" 
+                bound = np.sqrt(6.0 / (L[i] + L[i + 1]))
+                #print bound
+                weights.append(np.random.uniform(low=-bound, high=bound, size=[L[i],L[i+1]])) 
+                biases.append(np.random.uniform(low=-bound, high=bound, size=[1, L[i+1]]))  
+            else:
+                #print "Uniform ReLU. Calcing 2 / (" + str(L[i]) + " + " + str(L[i + 1]) + "):" 
+                std = np.sqrt(2.0 / (L[i] + L[i + 1]))
+                #print std
+                weights.append(np.random.normal(loc=0.0, scale=std, size=[L[i],L[i+1]])) 
+                biases.append(np.random.normal(loc=0.0, scale=std, size=[1, L[i+1]]))       
+                
+        elif activations[i].func_name == "ReLU":
+            
+            if uniform:
+                bound = np.sqrt(2) * np.sqrt(6.0 / (L[i] + L[i + 1]))
+                weights.append(np.random.uniform(low=-bound, high=bound, size=[L[i],L[i+1]])) 
+                biases.append(np.random.uniform(low=-bound, high=bound, size=[1, L[i+1]]))  
+            else:
+                std = np.sqrt(2) * np.sqrt(2.0 / (L[i] + L[i + 1]))
+                #print std
+                weights.append(np.random.normal(loc=0.0, scale=std, size=[L[i],L[i+1]])) 
+                biases.append(np.random.normal(loc=0.0, scale=std, size=[1, L[i+1]]))       
+                
+        elif activations[i].func_name == "Sigmoid":
+        
+            if uniform:
+                bound = 4 * np.sqrt(6.0 / (L[i] + L[i + 1]))
+                weights.append(np.random.uniform(low=-bound, high=bound, size=[L[i],L[i+1]])) 
+                biases.append(np.random.uniform(low=-bound, high=bound, size=[1, L[i+1]]))  
+            else:
+                std = 4 * np.sqrt(2.0 / (L[i] + L[i + 1]))
+                weights.append(np.random.normal(loc=0.0, scale=std, size=[L[i],L[i+1]])) 
+                biases.append(np.random.normal(loc=0.0, scale=std, size=[1, L[i+1]]))       
+        
+        elif activations[i].func_name == "Linear":
+            
+            if uniform:
+                bound = np.sqrt(6.0 / (L[i] + L[i + 1]))
+                weights.append(np.random.uniform(low=-bound, high=bound, size=[L[i],L[i+1]])) 
+                biases.append(np.random.uniform(low=-bound, high=bound, size=[1, L[i+1]]))
+            else:
+                std = np.sqrt(2.0 / (L[i] + L[i + 1]))
+                weights.append(np.random.normal(loc=0.0, scale=std, size=[L[i],L[i+1]])) 
+                biases.append(np.random.normal(loc=0.0, scale=std, size=[1, L[i+1]]))       
+
+        else:
+            raise NotImplementedError("Activation function " + str(activations[i].func_name) + " not implemented.")
 
     return (weights, biases)
 
@@ -53,6 +109,31 @@ def backward_pass(x, t, y, z, a, NN, activations, loss):
     t = t.reshape(BS, -1)
 
     """ YOUR CODE HERE!"""
+    d_loss = loss(t, y, derivative=True) # <- Insert correct expression here
+    
+
+    # Third, let's compute the derivative of the biases and the weights
+    g_w = [] # List to save the gradient of the weights
+    g_b = [] # List to save the gradients of the biases
+
+    delta = np.einsum('bo, bo -> bo', d_loss, d_a[-1])# loss shape: (b, o); pre-activation units shape: (b, o) hadamard product
+
+    g_b.append(np.mean(delta, axis=0))
+    g_w.append(np.mean(np.einsum('bo, bi -> bio', delta, z[-2]), axis=0)) # delta shape: (b, o), activations shape: (b, h) 
+
+    for l in range(1, len(NN[0])):
+        d_C_d_z = np.einsum('bo, io -> bi', delta, NN[0][-l])  # Derivative of the Cost with respect to an activated layer d_C_d_z. 
+                                                               #  delta shape: as above; weights shape: (i, o)
+                                                               # Delta: d_C_d_z (element-wise mult) derivative of the activation layers
+                                                               #  delta shape: as above; d_z shape: (b, i)  
+        """ YOUR CODE HERE """
+        delta = np.einsum('bo, bo -> bo', d_C_d_z, d_a[-1 - l])   # <- Insert correct expression 
+                                                                
+        g_b.append(np.mean(delta, axis=0)) 
+        g_w.append(np.mean(np.einsum('bo, bi -> bio', delta, z[-l-2]), axis=0)) # Derivative of cost with respect to weights in layer l:
+                                                                                # delta shape: as above; activations of l-1 shape: (b, i)
+    
+    return g_b[::-1], g_w[::-1]
 
 class DQNagent(Agent):
     def __init__(self, **args):
@@ -101,12 +182,17 @@ class DQNagent(Agent):
         # Compute our estimate of the Q value, for updating the network
         """ YOUR CODE HERE! """
         # The Q-value in state s. Should be a [1, self.num_actions] shaped np.array
-        Q_pred = None
+        Q_pred = NN_util.forward_pass(s, self.NN, self.activation_fns)
         # Compute the target
         """ YOUR CODE HERE! """
         # the target is observed reward + the discounted future reward (Q-value)
         # NB: at the terminal state, i.e. d==True the target is ONLY the reward.
-        target = None
+        if d:
+            target = r
+        else:
+            NN_forward = NN_util.forward_pass(s_, self.NN, self.activation_fns)
+            a = np.argmax(NN_forward[1][-1])
+            target = r + self.gamma * a
         # Update the network
         g_b, g_w = backward_pass(s, target, Q_pred, units, aff,
                                  self.NN, self.activation_fns, NN_util.squared_error)
@@ -192,6 +278,7 @@ if __name__ == '__main__':
 
     > python pacman.py --help
     """
+    print sys.argv
     args = readCommand( sys.argv[1:] ) # Get game components based on input
     display = copy.deepcopy(args['display'])
     args['display'] = textDisplay.NullGraphics()

@@ -84,7 +84,8 @@ def checkFood(params):
     pacmanPos = newState.getPacmanPosition()
     return state.getFood()[pacmanPos[0]][pacmanPos[1]]
 
-def takeRandomNoGhostAction(state):
+def takeRandomNoGhostAction(params):
+    state = params[0]
     ghostNear = True
     legalActions = state.getLegalActions()
     tries = 0
