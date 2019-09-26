@@ -26,7 +26,7 @@ N_STATES = env.observation_space.shape[0]
 """
 BATCH_SIZE = 32
 LR = 0.001                   # learning rate
-GAMMA = 0.95                 # reward discount
+GAMMA = 0.1                  # reward discount
 TARGET_REPLACE_ITER = 100    # target update frequency
 MEMORY_CAPACITY = 10000      # Size of experience memory buffer
 
@@ -55,15 +55,20 @@ class Net(nn.Module):
             
             [You will define the activation functions in self.forward below]
         """
-        fc1_units = 1
+        fc1_units = 5
         self.fc1 = nn.Linear(N_STATES, fc1_units)
         self.out = nn.Linear(fc1_units, N_ACTIONS)
 
         fc1_init_std = 0.1
         out_init_std = 0.1
 
-        self.fc1.weight.data.normal_(0, fc1_init_std)   # initialization
-        self.out.weight.data.normal_(0, out_init_std)   # initialization
+        #self.fc1.weight.data.normal_(0, fc1_init_std)   # initialization
+        #self.out.weight.data.normal_(0, out_init_std)   # initialization
+        nn.init.kaiming_normal_(self.fc1.weight, a=0, mode='fan_in', nonlinearity='leaky_relu')
+        nn.init.kaiming_normal_(self.out.weight, a=0, mode='fan_in', nonlinearity='leaky_relu')
+
+#        nn.init.normal_(self.fc1.weight, std=fc1_init_std)
+#       nn.init.normal_(self.out.weight, std=out_init_std)
 
     def forward(self, x):
         """ Computes the forward pass of the network, and
@@ -75,7 +80,7 @@ class Net(nn.Module):
             that you have chosen in Net.__init__
         """
         # Hidden layer
-        x = F.relu(self.fc1(x))
+        x = F.leaky_relu(self.fc1(x))
 
         # Output layer
         actions_value = self.out(x)
@@ -185,8 +190,7 @@ class DQN(object):
 
 dqn = DQN()
 
-# reward_shaping = True
-reward_shaping = False
+reward_shaping = True
 
 print('\nCollecting experience...')
 episode_rewards = []
@@ -223,7 +227,9 @@ while True:
                     x_thresh = env.unwrapped.x_threshold
                     theta_thresh = env.unwrapped.theta_threshold_radians
             """
-            pass
+            cartPos, cartVel, poleTheta, poleVel = s_
+            posThresh = env.unwrapped.x_threshold
+            thetaThresh = env.unwrapped.theta_threshold_radians
 
         # Store experience
         dqn.store_transition(s, a, r, s_, done)
@@ -248,9 +254,14 @@ while True:
             break
         s = s_
 
-plt.clf()
-plt.plot(range(len(episode_rewards)), episode_rewards, label='Training Begun')
-plt.plot(range(len(episode_rewards[:training_begins])), episode_rewards[:training_begins], label='Gathering Exp.')
-plt.legend()
+    if i_episode > 1 and i_episode % 500 == 0:
+        print("hi!")
+        plt.clf()
+        #plt.plot(range(len(episode_rewards)), episode_rewards, label='Training Begun' + str(i_episode))
+        #plt.plot(range(len(episode_rewards[:training_begins])), episode_rewards[:training_begins], label='Gathering Exp.' + str(i_episode))
+        plt.plot(episode_rewards, label='Training Begun' + str(i_episode))
+        plt.plot(episode_rewards[:training_begins], label='Gathering Exp.' + str(i_episode))
+        plt.legend()
+        plt.show()
 
-print(":)")
+        print(":)")
