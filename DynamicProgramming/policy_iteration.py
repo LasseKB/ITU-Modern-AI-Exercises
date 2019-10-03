@@ -1,4 +1,5 @@
 import DP_util
+import random
 
 """ Evaluate a random policy."""
 random_policy = DP_util.create_random_policy()
@@ -45,6 +46,16 @@ def policy_iteration(theta=0.01, discount_rate=0.5):
         """
 
         """ YOUR CODE HERE! """
+        delta = 0
+        #do:
+        for state in range(16):
+            oldVal = V_s[state]
+            V_s[state] = 0
+            action = random.choices(policy[state].keys(), cum_weights=policy[state].values())
+            V_s += state_transition_probabilities[(s_to_sprime[state][action], -1, state, action)]
+            delta = max(delta, abs(oldVal - V_s[state]))
+        #while not delta < theta
+
 
 
         """ #3: Policy improvement

@@ -129,7 +129,7 @@ class BTAgent(Agent):
 
             # Just go where there is no ghost
             BTUtils.BTLeaf(BTUtils.takeRandomNoGhostAction, [state]),
-            BTUtils.BTLeaf(BTUtils.takeAction, "Stop")
+            BTUtils.BTLeaf(BTUtils.takeAction, ["Stop", state])
         ])
 
         ourTree.evaluate()

@@ -60,6 +60,7 @@ def checkNoGhost(params):
     return True
 
 def takeAction(params):
+    print params
     action, state = params
     #print "Taking action " + str(action)
     searchAgents.BTAgent.actionToTake = action
