@@ -211,6 +211,39 @@ class GAAgent(Agent):
         return action
 
 
+class CustomAStarAgent(Agent):
+    def __init__(self):
+        self.action = None
+
+    def getAction(self, state):
+        # pacmanPos = state.getPacmanPosition()
+        # for ghostPos in state.getGhostPositions:
+        #     if util.manhattanDistance(ghostPos, pacmanPos) < 3:
+        #         if pacmanPos.x == ghostPos.x:
+        #             math.
+        #         yDelta = pacmanPos.y - ghostPos.y
+        #         if abs(xDelta) < abs(yDelta):
+                    
+        for ghostState in state.getGhostStates():
+            if ghostState.scaredTimer > 0:
+                ghostPos = ghostState.getPosition()
+                ghostPosIntegers = (int(ghostPos[0]), int(ghostPos[1]))
+                problem = PositionSearchProblem(state, goal=ghostPosIntegers, start=state.getPacmanPosition())
+                actionList = search.aStarSearch(problem, heuristic=manhattanHeuristic)
+                if len(actionList) > 0:
+                    self.action = actionList[0]
+        if self.action == None:
+            problem = AnyFoodSearchProblem(state)
+            actionList = search.breadthFirstSearch(problem)
+            if len(actionList) > 0:
+                self.action = actionList[0]
+        if self.action == None:
+            self.action = "Stop"
+                
+        temp = self.action
+        self.action = None
+        return temp
+
 #######################################################
 # This portion is written for you, but will only work #
 #       after you fill in parts of search.py          #
@@ -614,7 +647,10 @@ def foodHeuristic(state, problem):
     """
     position, foodGrid = state
     "*** YOUR CODE HERE ***"
-    return 0
+    print len(foodGrid.asList())
+    print foodGrid.asList()
+    print ""
+    return len(foodGrid.asList())
 
 class ClosestDotSearchAgent(SearchAgent):
     "Search for all food using a sequence of searches"
@@ -645,7 +681,7 @@ class ClosestDotSearchAgent(SearchAgent):
         problem = AnyFoodSearchProblem(gameState)
 
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        return self.searchFunction(problem)
 
 class AnyFoodSearchProblem(PositionSearchProblem):
     """
@@ -672,6 +708,7 @@ class AnyFoodSearchProblem(PositionSearchProblem):
         self.startState = gameState.getPacmanPosition()
         self.costFn = lambda x: 1
         self._visited, self._visitedlist, self._expanded = {}, [], 0 # DO NOT CHANGE
+        self.ghosts = gameState.getGhostPositions()
 
     def isGoalState(self, state):
         """
@@ -681,7 +718,32 @@ class AnyFoodSearchProblem(PositionSearchProblem):
         x,y = state
 
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        return self.food[x][y]
+
+    def getSuccessors(self, state): # No ghosts
+        successors = []
+        for action in [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]:
+            x,y = state
+            dx, dy = Actions.directionToVector(action)
+            nextx, nexty = int(x + dx), int(y + dy)
+            nextState = (nextx, nexty)
+            adjacents = []
+            for ghostPos in self.ghosts:
+                adjacents.append((ghostPos[0] - 1, ghostPos[1]))
+                adjacents.append((ghostPos[0] + 1, ghostPos[1]))
+                adjacents.append((ghostPos[0], ghostPos[1] - 1))
+                adjacents.append((ghostPos[0], ghostPos[1] + 1))
+            if not self.walls[nextx][nexty] and nextState not in self.ghosts and nextState not in adjacents:
+                cost = self.costFn(nextState)
+                successors.append( ( nextState, action, cost) )
+
+        # Bookkeeping for display purposes
+        self._expanded += 1 # DO NOT CHANGE
+        if state not in self._visited:
+            self._visited[state] = True
+            self._visitedlist.append(state)
+
+        return successors
 
 def mazeDistance(point1, point2, gameState):
     """

@@ -2,6 +2,7 @@ import copy
 
 from pacman import *
 from game import Agent
+import numpy as np
 
 
 class MCTSagent(Agent):
@@ -9,6 +10,7 @@ class MCTSagent(Agent):
         self.explored = {}  # Dictionary for storing the explored states
         self.n = 10  # Depth of search  # TODO: Play with this once the code runs
         self.c = 1  # Exploration parameter # TODO: Play with this once the code runs
+        self.treeSize = 1
 
     def getAction(self, state):
         """ Main function for the Monte Carlo Tree Search. For as long as there
@@ -17,61 +19,70 @@ class MCTSagent(Agent):
         """
         self.explored = {}
 
-        root = """ YOUR CODE HERE"""  # TODO: How will you encode the nodes and states?
+        root = [0, None, [], 0, 0, state, None]  # TODO: How will you encode the nodes and states?
 
         for _ in range(self.n):  # while resources are left (time, computational power, etc)
-            leaf_list = self.traverse(root)
-            for leaf in leaf_list:
+            selection = self.traverse(root)
+            action = np.random.choice(selection[5].getLegalPacmanActions)
+            expansion = 
                 simulation_result = self.rollout(leaf)
                 self.backpropagate(leaf, simulation_result)
 
         return self.best_action(root)
 
-    def all_successors(self, state):
-        """ Returns all legal successor states."""
-        next_pos = []
-        for action in state.getLegalPacmanActions():
-            next_pos.append(state.generatePacmanSuccessor(action))
-        return next_pos
+    #def all_successors(self, state):
+    #    """ Returns all legal successor states."""
+    #    next_pos = []
+    #    for action in state.getLegalPacmanActions():
+    #        next_pos.append(state.generatePacmanSuccessor(action))
+    #    return next_pos
 
-    def traverse(self, state):
+    def traverse(self, node):
         """ Returns a list of states to explore. If state is terminal the list
             has length 1.
         """
 
-        def state_is_explored(state):
+        def state_is_explored(node):
             """ Determines whether a state has been explored before.
                 Returns True if the state has been explored, false otherwise
             """
             """ YOUR CODE HERE!"""
-            raise NotImplementedError
+            return len(node[2]) > len(self.all_successors(node[5]))
 
-        def best_UCT(state):
+        def best_UCT(node):
             """ Given a state, return the best action according to the UCT criterion."""
             """ YOUR CODE HERE!"""
-            raise NotImplementedError
+            actionInd = 0
+            bestVal = 0
+            children = node[2]
+            for i in range(len(children)):
+                curVal = children[i][3] + (self.c * np.sqrt(2 * np.log(self.treeSize) / children[i][4]))
+                if curVal > bestVal:
+                    actionInd = i
+                    bestVal = curVal
+            return children[actionInd]
 
-        while state_is_explored(state):
-            action = best_UCT(state)
-            state = state.generatePacmanSuccessor(action)
+        while state_is_explored(node):
+            node = best_UCT(node)
 
-            if state.isWin() or state.isLose():
-                return [copy.deepcopy(state)]
+            if node[5].isWin() or node[5].isLose():
+                return [copy.deepcopy(node[5])]
 
-        return self.all_successors(state)
+        return node
 
     def rollout(self, state):
         """ Simulate a play through, using random actions.
         """
         while not state.isWin() and not state.isLose():
             """ YOUR CODE HERE! """
-            state = 'XXX'
-            raise NotImplementedError
+            action = np.random.choice(state.getLegalPacmanActions())
+            state = state.generatePacmanSuccessor(action)
         return state.getScore()
 
     def backpropagate(self, state, result):
         """ Backpropagate the scores, and update the value estimates."""
         """ YOUR CODE HERE! """
+
 
     def best_action(self, node):
         """ Returns the best action given a state. This will be the action with

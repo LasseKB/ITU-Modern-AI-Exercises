@@ -113,7 +113,26 @@ def depthFirstSearch(problem):
 def breadthFirstSearch(problem):
     """Search the shallowest nodes in the search tree first."""
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    directions = {}
+    frontier = util.Queue()
+    frontier.push(problem.getStartState())
+    explored = []
+    while True:
+      if frontier.isEmpty():
+        return []
+      node = frontier.pop()
+      if problem.isGoalState(node):
+        result = []
+        while directions.has_key(node):
+          result.append(directions[node][1])
+          node = directions[node][0]
+        result.reverse()
+        return result
+      explored.append(node)
+      for nghbr in problem.getSuccessors(node):
+        if nghbr[0] not in frontier.list and nghbr[0] not in explored:
+          frontier.push(nghbr[0])
+          directions[nghbr[0]] = (node, nghbr[1])
 
 def uniformCostSearch(problem):
     """Search the node of least total cost first."""
@@ -140,7 +159,6 @@ def aStarSearch(problem, heuristic=nullHeuristic):
       if frontier.isEmpty():
         return []
       #print frontier.heap[0]
-      cost = frontier.heap[0][0]
       node = frontier.pop()
       if problem.isGoalState(node):
         result = []
@@ -152,15 +170,19 @@ def aStarSearch(problem, heuristic=nullHeuristic):
       explored.append(node)
       for nghbr in problem.getSuccessors(node):
         if nghbr[0] not in explored:
-          if nghbr[0] not in frontier.heap:
+          # if nghbr[0] not in frontier.heap:
+          #   gvalues[nghbr[0]] = gvalues[node] + nghbr[2]
+          #   frontier.push(nghbr[0], gvalues[nghbr[0]] + heuristic(nghbr[0], problem))
+          #   directions[nghbr[0]] = (node, nghbr[1])
+          if not gvalues.has_key(nghbr[0]):
             gvalues[nghbr[0]] = gvalues[node] + nghbr[2]
-            frontier.push(nghbr[0], gvalues[nghbr[0]] + heuristic(nghbr[0], problem))
+            frontier.update(nghbr[0], gvalues[nghbr[0]] + heuristic(nghbr[0], problem))
             directions[nghbr[0]] = (node, nghbr[1])
-          else:
-            if gvalues[nghbr[0]] > gvalues[node] + nghbr[2]:
-              gvalues.update({nghbr[0], gvalues[node] + nghbr[2]})
-              frontier.update(nghbr[0], nghbr[2] + cost)
-              directions[nghbr[0]] = (node, nghbr[1])
+          elif gvalues[nghbr[0]] > gvalues[node] + nghbr[2]:
+            gvalues.update({nghbr[0]: gvalues[node] + nghbr[2]})
+            frontier.update(nghbr[0], gvalues[nghbr[0]] + heuristic(nghbr[0], problem))
+            directions[nghbr[0]] = (node, nghbr[1])
+
 
 
 # Abbreviations
