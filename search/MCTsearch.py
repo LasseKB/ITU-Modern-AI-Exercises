@@ -2,6 +2,7 @@ from pacman import *
 from game import Agent
 import numpy as np
 import time
+import psutil
 
 class MCTSNode:
     def __init__(self, ID, parent, state, action):
@@ -23,6 +24,7 @@ class MCTSagent(Agent):
         childInd = 0
         bestVal = 0
         for i in range(len(node.children)):
+			# Check that this is correct UCT
             curVal = node.children[i].value + (self.c * np.sqrt(2 * np.log(self.treeSize) / node.children[i].visits))
             if curVal > bestVal:
                 childInd = i
@@ -34,7 +36,7 @@ class MCTSagent(Agent):
         root = MCTSNode(0, None, state, None)
         startTime = time.time()
         #for _ in range(self.n):
-        while time.time() - startTime < 2:
+        while time.time() - startTime < 0.25:
             node = self.treePolicy(root)
             delta = self.defaultPolicy(node.state)
             self.backup(node, delta)
@@ -47,6 +49,7 @@ class MCTSagent(Agent):
             return len(node.children) == len(node.state.getLegalPacmanActions())
 
         def expand(node):
+			# Check that the random action hasn't been taken before (it'll be in another child if it has)
             action = np.random.choice(node.state.getLegalPacmanActions())
             newState = node.state.generatePacmanSuccessor(action)
             newChild = MCTSNode(self.treeSize, node, newState, action)
@@ -76,7 +79,7 @@ class MCTSagent(Agent):
 
 if __name__ == '__main__':
     #str_args = ['-g', 'DirectionalGhost', '--frameTime', '0']   
-    str_args = ['--frameTime', '0'] 
+    str_args = ['--frameTime', '0', "-l", "contestClassic"] 
     #str_args = ['-l', 'TinyMaze', '-g', 'DirectionalGhost', '--frameTime', '0', '-n', '10']
     #str_args = ['-l', 'TestMaze', '-g', 'DirectionalGhost', '--frameTime', '0', '-n', '10']
     args = readCommand(str_args)
