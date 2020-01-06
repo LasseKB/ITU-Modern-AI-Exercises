@@ -13,34 +13,41 @@ class MCTSNode:
         self.visits = 0
         self.state = state
         self.action = action
+        self.triedActions = []
 
 class MCTSagent(Agent):
     def __init__(self):
-        self.n = 25
-        self.c = 1 / np.sqrt(2)
+        self.n = 50
+        self.c = 1 #/ np.sqrt(2)
         self.treeSize = 1
 
-    def bestChild(self, node):
+    def bestChild(self, node, c):
         childInd = 0
-        bestVal = 0
+        bestVal = float("-inf")
         for i in range(len(node.children)):
 			# Check that this is correct UCT
-            curVal = node.children[i].value + (self.c * np.sqrt(2 * np.log(self.treeSize) / node.children[i].visits))
+            curVal = (node.children[i].value / node.children[i].visits) + (c * np.sqrt(2 * np.log(node.visits) / node.children[i].visits))
             if curVal > bestVal:
                 childInd = i
                 bestVal = curVal
         return node.children[childInd]
 
     def getAction(self, state):
-        # ID, parent, children, value, number of visits, state, action to get to state 
+        # ID, parent, state, action to get to state 
         root = MCTSNode(0, None, state, None)
-        startTime = time.time()
-        #for _ in range(self.n):
-        while time.time() - startTime < 0.25:
+        #iterationNumber = 0
+        for _ in range(self.n):
+        #startTime = time.time()
+        #while time.time() - startTime < 0.25:
             node = self.treePolicy(root)
             delta = self.defaultPolicy(node.state)
             self.backup(node, delta)
-        return self.bestChild(root).action
+            #iterationNumber += 1
+        #print str(iterationNumber) + " iterations"
+        chosenAction = self.bestChild(root, 0).action
+        #self.recurseDeleteTree(root)
+        node.state.getAndResetExplored() #!
+        return chosenAction
 
         
     def treePolicy(self, node):
@@ -51,9 +58,12 @@ class MCTSagent(Agent):
         def expand(node):
 			# Check that the random action hasn't been taken before (it'll be in another child if it has)
             action = np.random.choice(node.state.getLegalPacmanActions())
+            while action in node.triedActions:
+                action = np.random.choice(node.state.getLegalPacmanActions())
             newState = node.state.generatePacmanSuccessor(action)
             newChild = MCTSNode(self.treeSize, node, newState, action)
             node.children.append(newChild)
+            node.triedActions.append(action)
             self.treeSize += 1
             return newChild
         
@@ -62,14 +72,25 @@ class MCTSagent(Agent):
             if not fullyExpanded(node):
                 return expand(node)
             else:
-                node = self.bestChild(node)
+                node = self.bestChild(node, self.c)
         return node
 
     def defaultPolicy(self, state):
+        i = 0
         while (not state.isWin()) and (not state.isLose()):
             action = np.random.choice(state.getLegalPacmanActions())
             state = state.generatePacmanSuccessor(action)
+            i += 1
+            if i > 10:
+                break
         return state.getScore()
+        # if state.isWin():
+        #     return 1
+        # elif state.isLose():
+        #     return 0
+        # else:
+        #     print "Error: State was neither win nor lose!"
+        #     return 0
 
     def backup(self, node, delta):
         while not node == None:
@@ -77,9 +98,23 @@ class MCTSagent(Agent):
             node.value += delta
             node = node.parent
 
+    # def recurseDeleteTree(self, node):
+    #     for child in node.children:
+    #         self.recurseDeleteTree(child)
+    #     del node.ID
+    #     del node.parent
+    #     del node.children
+    #     del node.value
+    #     del node.visits
+    #     del node.state
+    #     del node.action
+    #     del node.triedActions
+    #     del node
+    #     return
+
 if __name__ == '__main__':
     #str_args = ['-g', 'DirectionalGhost', '--frameTime', '0']   
-    str_args = ['--frameTime', '0', "-l", "contestClassic"] 
+    str_args = ['--frameTime', '0', "-l", "openClassic", "-n", "50"] 
     #str_args = ['-l', 'TinyMaze', '-g', 'DirectionalGhost', '--frameTime', '0', '-n', '10']
     #str_args = ['-l', 'TestMaze', '-g', 'DirectionalGhost', '--frameTime', '0', '-n', '10']
     args = readCommand(str_args)
